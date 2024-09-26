@@ -52,13 +52,20 @@ def only_choice(values):
     return values
 
 def reduce_puzzle(values):
+    if not isinstance(values, dict):
+        return False
     stalled = False
     while not stalled:
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
         for s in squares:
             for d in values[s]:
-                values = eliminate(values, s, d)
+                new_values = eliminate(values, s, d)
+                if not new_values:
+                    return False
+                values = new_values
         values = only_choice(values)
+        if not isinstance(values, dict):
+            return False
         solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
         stalled = solved_values_before == solved_values_after
         if len([box for box in values.keys() if len(values[box]) == 0]):
@@ -82,38 +89,6 @@ def some(seq):
         if e: return e
     return False
 
-def from_file(filename, sep='\n'):
-    return file(filename).read().strip().split(sep)
-
-def shuffled(seq):
-    return sorted(seq, key=lambda x: random.random())
-
-def solve_all(grids, name='', showif=0.0):
-    def time_solve(grid):
-        start = time.clock()
-        values = solve(grid)
-        t = time.clock()-start
-        return (t, solved(values))
-    times, results = zip(*[time_solve(grid) for grid in grids])
-    N = len(grids)
-    if N > 1:
-        print("Solved %d of %d %s puzzles (avg %.2f secs (%d Hz), max %.2f secs)." % (
-            sum(results), N, name, sum(times)/N, N/sum(times), max(times)))
-
-def solved(values):
-    def unitsolved(unit): return set(values[s] for s in unit) == set(digits)
-    return values is not False and all(unitsolved(unit) for unit in unitlist)
-
-def random_puzzle(N=17):
-    values = dict((s, digits) for s in squares)
-    for s in shuffled(squares):
-        if not assign(values, s, random.choice(values[s])):
-            break
-        ds = [values[s] for s in squares if len(values[s]) == 1]
-        if len(ds) >= N and len(set(ds)) >= 8:
-            return ''.join(values[s] if len(values[s])==1 else '.' for s in squares)
-    return random_puzzle(N)
-
 def validate_sudoku(grid):
     if not re.match(r'^[0-9.]{81}$', grid):
         return False
@@ -121,4 +96,4 @@ def validate_sudoku(grid):
 
 if __name__ == '__main__':
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
-    display(solve(diag_sudoku_grid))
+    print(solve(diag_sudoku_grid))
